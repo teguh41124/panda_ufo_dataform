@@ -1,0 +1,77 @@
+config {
+    type: "table",
+    name: "rate_recipe_dataform"
+}
+
+WITH
+  rate_recipe AS (
+  SELECT
+    DATE(el.created_at) AS active_date,
+    el.created_at AS rate_recipe_at,
+    user_id AS rate_recipe_user_id,
+    name AS rate_recipe_name,
+    platform,
+    event_name,
+    'rate_recipe' AS event_type,
+    relation_id,
+  FROM
+    ${ref("event_logs_partitioned")} el
+  LEFT JOIN
+    ${ref("users")} u
+  ON
+    el.user_id = u.id
+  WHERE
+    user_id > 0
+    AND relation_id > 0
+    AND DATE(el.created_at) >= '2026-04-01'
+    AND event_name = 'Recipe - Rating Recipe' ),
+  recipe_creator AS (
+  SELECT
+    r.recipe_name,
+    u.id AS recipe_creator_user_id,
+    u.name AS recipe_creator_name,
+    r.id AS recipe_id,
+    r.created_at AS recipe_created_at
+  FROM
+    ${ref("recipes")} r
+  LEFT JOIN
+    ${ref("users")} u
+  ON
+    r.user_id = u.id ),
+  recipe_category AS (
+  SELECT
+    rcm.recipe_id,
+    rcm.recipe_category_id,
+    rc.category_name
+  FROM
+    ${ref("recipe_category_mapping")} rcm
+  LEFT JOIN
+    ${ref("recipe_categories")} rc
+  ON
+    rcm.recipe_category_id = rc.id )
+SELECT
+  r.*,
+  rc.recipe_name,
+  ARRAY_AGG(rcat.category_name IGNORE NULLS) AS recipe_category,
+  rt.rate AS recipe_rate,
+  ROUND(rt.rate / 100.0 * 5, 1) AS recipe_rate_in_stars,
+  rc.recipe_creator_user_id,
+  rc.recipe_creator_name,
+  rc.recipe_created_at,
+FROM
+  rate_recipe r
+LEFT JOIN
+  recipe_creator rc
+ON
+  r.relation_id = rc.recipe_id
+LEFT JOIN
+  recipe_category rcat
+ON
+  r.relation_id = rcat.recipe_id
+LEFT JOIN
+  `DU.ratings` rt
+ON
+  r.relation_id = rt.recipe_id
+  AND r.rate_recipe_user_id = rt.user_id
+GROUP BY
+  ALL

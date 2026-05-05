@@ -1,0 +1,71 @@
+config {
+    type: "table",
+    name: "like_recipe_dataform"
+}
+
+WITH
+  like_recipe AS (
+  SELECT
+    DATE(el.created_at) AS active_date,
+    el.created_at AS like_recipe_at,
+    el.user_id AS like_recipe_user_id,
+    u.name AS like_recipe_name,
+    el.platform,
+    el.event_name,
+    'like_recipe' AS event_type,
+    el.relation_id,
+  FROM
+    ${ref("event_logs_partitioned")} el
+  LEFT JOIN
+    ${ref("users")} u
+  ON
+    el.user_id = u.id
+  WHERE
+    user_id > 0
+    AND relation_id > 0
+    AND DATE(el.created_at) >= '2026-04-01'
+    AND el.event_name IN ( 'Recipe Detail- Recipe like',
+      'Recipe - Like Recipe') ),
+  recipe_creator AS (
+  SELECT
+    r.recipe_name,
+    u.id AS recipe_creator_user_id,
+    u.name AS recipe_creator_name,
+    r.id AS recipe_id,
+    r.created_at AS recipe_created_at
+  FROM
+    ${ref("recipes")} r
+  LEFT JOIN
+    ${ref("users")} u
+  ON
+    r.user_id = u.id ),
+  recipe_category AS (
+  SELECT
+    rcm.recipe_id,
+    rcm.recipe_category_id,
+    rc.category_name
+  FROM
+    ${ref("recipe_category_mapping")} rcm
+  LEFT JOIN
+    ${ref("recipe_categories")} rc
+  ON
+    rcm.recipe_category_id = rc.id )
+SELECT
+  l.*,
+  rc.recipe_name,
+  ARRAY_AGG(rcat.category_name IGNORE NULLS) AS recipe_category,
+  rc.recipe_creator_user_id,
+  rc.recipe_creator_name,
+  rc.recipe_created_at,
+FROM
+  like_recipe l
+LEFT JOIN
+  recipe_creator rc
+ON
+  l.relation_id = rc.recipe_id
+LEFT JOIN
+  recipe_category rcat
+ON
+  l.relation_id = rcat.recipe_id
+GROUP BY
+  ALL

@@ -1,0 +1,77 @@
+config {
+  type: "table",
+  name: "ufo_dataform"
+}
+
+-- event: view_recipe
+SELECT
+  active_date,
+  view_recipe_at AS event_at,
+  view_recipe_user_id AS user_id,
+  view_recipe_name AS name,
+  platform,
+  event_type,
+  relation_id AS recipe_id,
+  recipe_name,
+  recipe_category,
+  recipe_creator_user_id,
+  recipe_creator_name,
+  recipe_created_at,
+  NULL AS recipe_rate,
+  NULL AS recipe_rate_in_stars,
+  NULL AS recipe_comment,
+  NULL AS recipe_comment_parent_id
+FROM ${ref("view_recipe_dataform")}
+WHERE
+  view_recipe_user_id > 0
+  AND active_date >= '2026-04-01'
+
+UNION ALL
+
+-- event: rate_recipe
+SELECT
+  active_date,
+  rate_recipe_at AS event_at,
+  rate_recipe_user_id AS user_id,
+  rate_recipe_name AS name,
+  platform,
+  event_type,
+  relation_id AS recipe_id,
+  recipe_name,
+  recipe_category,
+  recipe_creator_user_id,
+  recipe_creator_name,
+  recipe_created_at,
+  recipe_rate,
+  recipe_rate_in_stars,
+  NULL AS recipe_comment,
+  NULL AS recipe_comment_parent_id
+FROM ${ref("rate_recipe_dataform")}
+WHERE
+  rate_recipe_user_id > 0
+  AND active_date >= '2026-04-01'
+
+UNION ALL
+
+  -- event: like_recipe
+SELECT
+  active_date,
+  like_recipe_at AS event_at,
+  like_recipe_user_id AS user_id,
+  like_recipe_name AS name,
+  platform,
+  event_type,
+  relation_id AS recipe_id,
+  recipe_name,
+  recipe_category,
+  recipe_creator_user_id,
+  recipe_creator_name,
+  recipe_created_at,
+  NULL AS recipe_rate,
+  NULL AS recipe_rate_in_stars,
+  NULL AS recipe_comment,
+  NULL AS recipe_comment_parent_id
+FROM ${ref("like_recipe_dataform")}
+WHERE
+  like_recipe_user_id > 0
+  AND active_date >= '2026-04-01'

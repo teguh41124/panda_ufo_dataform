@@ -1,0 +1,7 @@
+{
+  "warehouse": "bigquery",
+  "defaultLocation": "us",
+  "assertionSchema": "DU",
+  "defaultDatabase": "data-management-471612",
+  "defaultSchema": "DU"
+}

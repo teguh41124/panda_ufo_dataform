@@ -1,0 +1,114 @@
+config {
+    type: "table",
+    name: "view_recipe_dataform"
+}
+
+WITH
+  view_recipe_web AS (
+  SELECT
+    DATE(created_at) AS active_date,
+    created_at AS view_recipe_at,
+    user_id AS view_recipe_user_id,
+    platform,
+    screen,
+    url,
+    relation_id
+  FROM
+    ${ref("visitor_logs_partitioned")}
+  WHERE
+    user_id > 0
+    AND relation_id > 0
+    AND DATE(created_at) >= '2026-04-01'
+    AND url LIKE '%dapurumami.com/resep%'
+    AND url NOT LIKE '%dapurumami.com/resep'
+    AND url NOT LIKE '%dapurumami.com/resep/user-default'
+    AND url NOT LIKE '%dapurumami.com/resep-upload%'
+    AND url NOT LIKE '%dapurumami.com/resep/get-data%'
+    AND url NOT LIKE '%dapurumami.com/resep?%'
+    AND url_method = 'GET' ),
+  view_recipe_app AS (
+  SELECT
+    DATE(created_at) AS active_date,
+    created_at AS view_recipe_at,
+    user_id AS view_recipe_user_id,
+    platform,
+    screen,
+    url,
+    relation_id
+  FROM
+    ${ref("visitor_logs_partitioned")}
+  WHERE
+    user_id > 0
+    AND relation_id > 0
+    AND DATE(created_at) >= '2026-04-01'
+    AND screen = '/resep-detail-page' ),
+  view_recipe_web_app_unclear AS (
+  SELECT
+    *
+  FROM
+    view_recipe_web
+  UNION ALL
+  SELECT
+    *
+  FROM
+    view_recipe_app ),
+  recipe_creator AS (
+  SELECT
+    u.id,
+    u.name,
+    r.id AS recipe_id,
+    r.recipe_name,
+    r.created_at
+  FROM
+    ${ref("recipes")} r
+  LEFT JOIN
+    ${ref("users")} u
+  ON
+    r.user_id = u.id ),
+  recipe_category AS (
+  SELECT
+    rcm.recipe_id,
+    rcm.recipe_category_id,
+    rc.category_name
+  FROM
+    ${ref("recipe_category_mapping")} rcm
+  LEFT JOIN
+    ${ref("recipe_categories")} rc
+  ON
+    rcm.recipe_category_id = rc.id ),
+  view_recipe_web_app AS (
+  SELECT
+    v.active_date,
+    v.view_recipe_at,
+    v.view_recipe_user_id,
+    u.name AS view_recipe_name,
+    v.platform,
+    v.screen,
+    v.url,
+    'view_recipe' AS event_type,
+    v.relation_id,
+    rcr.recipe_name AS recipe_name,
+    ARRAY_AGG(rcat.category_name IGNORE NULLS) AS recipe_category,
+    rcr.id AS recipe_creator_user_id,
+    rcr.name AS recipe_creator_name,
+    rcr.created_at AS recipe_created_at
+  FROM
+    view_recipe_web_app_unclear v
+  LEFT JOIN
+    ${ref("users")} u
+  ON
+    v.view_recipe_user_id = u.id
+  LEFT JOIN
+    recipe_creator rcr
+  ON
+    v.relation_id = rcr.recipe_id
+  LEFT JOIN
+    recipe_category rcat
+  ON
+    v.relation_id = rcat.recipe_id
+  GROUP BY
+    ALL )
+SELECT
+  *
+FROM
+  view_recipe_web_app

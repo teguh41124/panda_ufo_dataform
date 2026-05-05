@@ -1,0 +1,18 @@
+config {
+  type: "table",
+  name: "panda_ufo_dataform"
+}
+
+SELECT
+  active_date,
+  user_id,
+  COUNTIF(event_type = 'view_recipe') AS view_recipe,
+  COUNTIF(event_type = 'rate_recipe') AS rate_recipe,
+  COUNTIF(event_type = 'like_recipe') AS like_recipe
+FROM ${ref("ufo_dataform")}
+GROUP BY
+  active_date,
+  user_id
+ORDER BY
+  active_date,
+  user_id
