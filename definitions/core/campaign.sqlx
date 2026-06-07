@@ -1,0 +1,6 @@
+config {
+  type: "declaration",
+  database: "data-management-471612",
+  schema: "DU",
+  name: "campaign_participation_submissions"
+}
