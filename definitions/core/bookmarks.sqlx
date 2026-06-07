@@ -1,0 +1,8 @@
+config {
+    type: "declaration",
+    database: "data-management-471612",
+    schema: "DU",
+    name: "bookmarks"
+}
+
+  --bookmarks ini adalah apa? fnbhjsgfhdagwuh
